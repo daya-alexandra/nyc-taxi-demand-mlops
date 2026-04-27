@@ -1,0 +1,32 @@
+# Local package
+-e .
+
+# Core ML and data processing
+pandas
+numpy
+scikit-learn
+matplotlib
+joblib
+pyarrow
+fastparquet
+
+# Jupyter / local notebooks
+ipykernel
+
+# Configuration and CLI
+click
+python-dotenv
+
+# Documentation
+Sphinx
+
+# Code quality and testing
+black
+flake8
+bandit
+mypy
+pytest
+coverage
+
+# Data and model versioning
+dvc
