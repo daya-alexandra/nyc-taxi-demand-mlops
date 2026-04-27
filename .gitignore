@@ -98,7 +98,6 @@ data/interim/*
 data/processed/*
 data/external/*
 
-!data/raw/.gitkeep
 !data/interim/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
