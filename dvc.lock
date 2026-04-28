@@ -1,0 +1,75 @@
+schema: '2.0'
+stages:
+  make_dataset:
+    cmd: python src/data/make_dataset.py
+    deps:
+    - path: data/raw
+      hash: md5
+      md5: ba8e122771907abe8e5285842698b49b.dir
+      size: 245655027
+      nfiles: 6
+    - path: src/data/make_dataset.py
+      hash: md5
+      md5: c02698607cd9f627b6b13d37ab6ea106
+      size: 5752
+    outs:
+    - path: data/interim/hourly_demand.parquet
+      hash: md5
+      md5: 5c2c014ac8a5a5b274af50a8d01e17b6
+      size: 833603
+  build_features:
+    cmd: python src/features/build_features.py
+    deps:
+    - path: data/interim/hourly_demand.parquet
+      hash: md5
+      md5: 5c2c014ac8a5a5b274af50a8d01e17b6
+      size: 833603
+    - path: src/features/build_features.py
+      hash: md5
+      md5: efb66c377eeddb1f3b72172d333616c7
+      size: 2747
+    outs:
+    - path: data/processed/model_features.parquet
+      hash: md5
+      md5: 543ad5b660643d47cc548a8c71f2b19f
+      size: 3667182
+  train_model:
+    cmd: python src/models/train_model.py
+    deps:
+    - path: data/processed/model_features.parquet
+      hash: md5
+      md5: 543ad5b660643d47cc548a8c71f2b19f
+      size: 3667182
+    - path: src/models/train_model.py
+      hash: md5
+      md5: 8b00fbd3454b76c5b4c858920aeb72a4
+      size: 4367
+    outs:
+    - path: models/baseline_demand_model.joblib
+      hash: md5
+      md5: ea0bcbfcab41ca3516e1ca6a63a64b47
+      size: 743485
+    - path: reports/baseline_metrics.json
+      hash: md5
+      md5: 22fc27f45bd2a770f42ddd391f7fe409
+      size: 574
+  predict_model:
+    cmd: python src/models/predict_model.py
+    deps:
+    - path: data/processed/model_features.parquet
+      hash: md5
+      md5: 543ad5b660643d47cc548a8c71f2b19f
+      size: 3667182
+    - path: models/baseline_demand_model.joblib
+      hash: md5
+      md5: ea0bcbfcab41ca3516e1ca6a63a64b47
+      size: 743485
+    - path: src/models/predict_model.py
+      hash: md5
+      md5: c3eb360b8497d25683900d2bc3544b00
+      size: 2024
+    outs:
+    - path: reports/baseline_predictions.parquet
+      hash: md5
+      md5: 1b75c4ddf8699b5827de9410929fe5bc
+      size: 12310626
