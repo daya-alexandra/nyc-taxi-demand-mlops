@@ -1,0 +1,36 @@
+stages:
+  make_dataset:
+    cmd: python src/data/make_dataset.py
+    deps:
+      - data/raw
+      - src/data/make_dataset.py
+    outs:
+      - data/interim/hourly_demand.parquet
+
+  build_features:
+    cmd: python src/features/build_features.py
+    deps:
+      - data/interim/hourly_demand.parquet
+      - src/features/build_features.py
+    outs:
+      - data/processed/model_features.parquet
+
+  train_model:
+    cmd: python src/models/train_model.py
+    deps:
+      - data/processed/model_features.parquet
+      - src/models/train_model.py
+    outs:
+      - models/baseline_demand_model.joblib
+    metrics:
+      - reports/baseline_metrics.json:
+          cache: false
+
+  predict_model:
+    cmd: python src/models/predict_model.py
+    deps:
+      - data/processed/model_features.parquet
+      - models/baseline_demand_model.joblib
+      - src/models/predict_model.py
+    outs:
+      - reports/baseline_predictions.parquet
