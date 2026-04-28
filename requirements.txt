@@ -33,3 +33,7 @@ dvc
 
 # Experiment tracking
 mlflow
+
+# API service
+fastapi
+uvicorn
