@@ -101,3 +101,6 @@ data/external/*
 !data/interim/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
+
+# Generated report artifacts
+reports/*.parquet
