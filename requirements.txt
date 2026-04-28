@@ -30,3 +30,6 @@ coverage
 
 # Data and model versioning
 dvc
+
+# Experiment tracking
+mlflow

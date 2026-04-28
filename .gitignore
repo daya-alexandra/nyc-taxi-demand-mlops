@@ -104,3 +104,7 @@ data/external/*
 
 # Generated report artifacts
 reports/*.parquet
+
+# MLflow local tracking
+mlruns/
+mlartifacts/
