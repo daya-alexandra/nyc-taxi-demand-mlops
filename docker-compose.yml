@@ -1,0 +1,7 @@
+services:
+  api:
+    build: .
+    image: nyc-taxi-demand-api
+    container_name: nyc-taxi-demand-api
+    ports:
+      - "8000:8000"
