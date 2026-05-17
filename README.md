@@ -325,3 +325,62 @@ docs(readme): add deployment instructions
 - Add optional MLflow Model Registry
 - Extend CI/CD if a deployment target is added
 - Prepare final project documentation and presentation
+
+- ## Monitoring and Drift Detection
+
+В проект добавлен базовый monitoring pipeline с использованием библиотеки Evidently.
+
+Реализованы два типа drift detection:
+
+### 1. Data Drift Detection
+
+Проверяется изменение распределения входных признаков между:
+- reference data (`X_train`)
+- current data (`X_test`)
+
+Сохраняемый артефакт:
+- `data_drift_report.html`
+
+### 2. Prediction Drift Detection
+
+Проверяется изменение распределения предсказаний модели между:
+- reference predictions
+- current predictions
+
+Сохраняемый артефакт:
+- `prediction_drift_report.html`
+
+Все monitoring artifacts автоматически сохраняются в папку `artifacts/`.
+
+Monitoring реализован с помощью библиотеки Evidently.
+
+## Project Architecture
+
+Проект реализует упрощённый MLOps pipeline:
+
+1. Загрузка и подготовка данных
+2. Feature engineering
+3. Обучение baseline-модели
+4. Логирование экспериментов в MLflow
+5. Сохранение model artifacts
+6. FastAPI inference service
+7. Docker / docker-compose deployment
+8. Kubernetes / minikube deployment
+9. Monitoring и drift detection через Evidently
+
+Pipeline проекта включает:
+- data layer
+- training layer
+- serving layer
+- monitoring layer
+
+- ## Future Improvements
+
+Возможные дальнейшие улучшения проекта:
+
+- MLflow Model Registry
+- Prometheus + Grafana monitoring
+- Автоматический retraining pipeline
+- Полноценный CI/CD deployment
+- ArgoCD integration
+- Online inference monitoring
