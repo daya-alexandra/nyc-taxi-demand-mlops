@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NYC Taxi Demand MLOps</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Production dashboard</p>
+        <h1>NYC Taxi Demand MLOps</h1>
+      </div>
+      <div class="header-actions">
+        <a class="link-button" href="http://127.0.0.1:5000" target="_blank" rel="noreferrer">
+          MLflow
+        </a>
+        <a class="link-button" href="http://127.0.0.1:9090" target="_blank" rel="noreferrer">
+          Prometheus
+        </a>
+        <a class="link-button" href="http://127.0.0.1:3000" target="_blank" rel="noreferrer">
+          Grafana
+        </a>
+        <span id="system-status" class="status-pill">API</span>
+        <button
+          id="retrain-button"
+          class="button button-secondary"
+          type="button"
+          title="Создать запрос на переобучение"
+        >
+          <span aria-hidden="true">↻</span>
+          Запустить retrain
+        </button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="Основные разделы">
+      <button class="tab-button active" type="button" data-view="inference">Inference</button>
+      <button class="tab-button" type="button" data-view="monitoring">Monitoring</button>
+      <button class="tab-button" type="button" data-view="experiments">Experiments</button>
+    </nav>
+
+    <main>
+      <section id="view-inference" class="view active">
+        <section class="metric-grid" aria-label="Сводка сервиса">
+          <article class="metric-card">
+            <span class="metric-label">Model status</span>
+            <strong id="model-metric">checking</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Prediction history</span>
+            <strong id="history-metric">0 rows</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Drift alerts</span>
+            <strong id="drift-metric">pending</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Registry</span>
+            <strong id="registry-metric">not registered</strong>
+          </article>
+        </section>
+
+        <div class="workspace-grid">
+          <section class="panel inference-panel">
+            <div class="panel-heading">
+              <h2>Inference</h2>
+              <span class="muted">online</span>
+            </div>
+
+            <form id="prediction-form" class="feature-grid">
+              <label>
+                Zone
+                <input name="pu_location_id" type="number" min="1" value="161" required />
+              </label>
+              <label>
+                Temp C
+                <input name="temperature_2m" type="number" step="0.1" value="20" required />
+              </label>
+              <label>
+                Humidity
+                <input name="relative_humidity_2m" type="number" step="0.1" value="60" required />
+              </label>
+              <label>
+                Rain mm
+                <input name="precipitation" type="number" min="0" step="0.1" value="0" required />
+              </label>
+              <label>
+                Weather code
+                <input name="weather_code" type="number" step="1" value="0" required />
+              </label>
+              <label>
+                Wind km/h
+                <input name="wind_speed_10m" type="number" step="0.1" value="10" required />
+              </label>
+              <label>
+                Hour
+                <input name="hour" type="number" min="0" max="23" value="18" required />
+              </label>
+              <label>
+                Weekday
+                <input name="day_of_week" type="number" min="0" max="6" value="2" required />
+              </label>
+              <label>
+                Day
+                <input name="day_of_month" type="number" min="1" max="31" value="15" required />
+              </label>
+              <label>
+                Month
+                <input name="month" type="number" min="1" max="12" value="6" required />
+              </label>
+              <label>
+                Weekend
+                <select name="is_weekend">
+                  <option value="0">No</option>
+                  <option value="1">Yes</option>
+                </select>
+              </label>
+              <label>
+                Lag 1h
+                <input name="lag_1h" type="number" step="0.1" value="120" required />
+              </label>
+              <label>
+                Lag 24h
+                <input name="lag_24h" type="number" step="0.1" value="110" required />
+              </label>
+              <label>
+                Lag 168h
+                <input name="lag_168h" type="number" step="0.1" value="100" required />
+              </label>
+              <label>
+                Rolling 24h
+                <input name="rolling_mean_24h" type="number" step="0.1" value="105" required />
+              </label>
+
+              <button
+                class="button button-primary submit-button"
+                type="submit"
+                title="Получить прогноз"
+              >
+                <span aria-hidden="true">▶</span>
+                Predict
+              </button>
+            </form>
+          </section>
+
+          <aside class="panel result-panel">
+            <div class="panel-heading">
+              <h2>Prediction</h2>
+              <span id="prediction-time" class="muted">waiting</span>
+            </div>
+            <div class="prediction-value">
+              <span id="prediction-value">--</span>
+              <small>trips/hour</small>
+            </div>
+            <div id="prediction-flags" class="flag-list"></div>
+          </aside>
+        </div>
+
+        <section class="panel table-panel">
+          <div class="panel-heading">
+            <h2>Latest predictions</h2>
+            <span id="prediction-count" class="muted">0 rows</span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Source</th>
+                  <th>Zone</th>
+                  <th>Hour</th>
+                  <th>Predicted</th>
+                  <th>Actual</th>
+                  <th>Error</th>
+                  <th>Flags</th>
+                </tr>
+              </thead>
+              <tbody id="predictions-table"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+
+      <section id="view-monitoring" class="view">
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Drift notifications</h2>
+            <div class="panel-actions">
+              <a class="link-button" href="/reports/drift" target="_blank" rel="noreferrer">Open report</a>
+              <span id="drift-status" class="status-pill muted">pending</span>
+            </div>
+          </div>
+          <div class="drift-summary">
+            <article>
+              <span>Data drift features</span>
+              <strong id="data-drift-metric">--</strong>
+            </article>
+            <article>
+              <span>Target drift</span>
+              <strong id="target-drift-metric">--</strong>
+            </article>
+            <article>
+              <span>Concept drift</span>
+              <strong id="concept-drift-metric">--</strong>
+            </article>
+          </div>
+          <div id="drift-list" class="alert-list"></div>
+        </section>
+      </section>
+
+      <section id="view-experiments" class="view">
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Experiments</h2>
+            <span class="muted">MLflow baseline</span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Run</th>
+                  <th>Experiment</th>
+                  <th>Model</th>
+                  <th>MAE</th>
+                  <th>RMSE</th>
+                  <th>R2</th>
+                  <th>Rows</th>
+                  <th>Registry</th>
+                </tr>
+              </thead>
+              <tbody id="experiments-table"></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

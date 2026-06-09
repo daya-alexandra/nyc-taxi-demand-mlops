@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nyc-taxi-demand-api
+  namespace: nyc-taxi-demand
+  labels:
+    app: nyc-taxi-demand-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nyc-taxi-demand-api
+  template:
+    metadata:
+      labels:
+        app: nyc-taxi-demand-api
+    spec:
+      containers:
+        - name: api
+          image: nyc-taxi-demand-api:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: http://mlflow:5000
+          ports:
+            - name: http
+              containerPort: 8000
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
