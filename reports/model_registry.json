@@ -1,0 +1,8 @@
+{
+    "name": "nyc-taxi-demand-regressor",
+    "status": "registered",
+    "experiment": "nyc-taxi-demand-baseline",
+    "run_id": "bcf60d1585214e21bdcc329783057143",
+    "tracking_uri": "http://127.0.0.1:5000",
+    "error": null
+}

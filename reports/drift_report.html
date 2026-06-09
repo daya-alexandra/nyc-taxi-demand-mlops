@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>NYC Taxi Drift Report</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 32px; color: #17211d; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border-bottom: 1px solid #d9e2dc; padding: 10px; text-align: left; }
+    th { background: #f5f7f4; }
+    .status {
+      display: inline-block;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #dff4ef;
+    }
+  </style>
+</head>
+<body>
+  <h1>NYC Taxi Drift Report</h1>
+  <p>Generated at: 2026-06-09T12:10:57+00:00</p>
+  <p>Status: <span class="status">critical</span></p>
+  <h2>Feature Drift</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>PSI</th>
+        <th>Severity</th>
+        <th>Reference mean</th>
+        <th>Current mean</th>
+      </tr>
+    </thead>
+    <tbody><tr><td>month</td><td>14.464891</td><td>critical</td><td>4.228261</td><td>6.0</td></tr>
+<tr><td>temperature_2m</td><td>7.053135</td><td>critical</td><td>12.692301</td><td>23.625906</td></tr>
+<tr><td>day_of_month</td><td>2.726098</td><td>critical</td><td>15.836957</td><td>19.0</td></tr>
+<tr><td>relative_humidity_2m</td><td>0.217769</td><td>critical</td><td>68.767663</td><td>62.807971</td></tr>
+<tr><td>weather_code</td><td>0.134265</td><td>warning</td><td>10.662591</td><td>5.201087</td></tr>
+<tr><td>precipitation</td><td>0.065776</td><td>ok</td><td>0.177627</td><td>0.093841</td></tr>
+<tr><td>wind_speed_10m</td><td>0.05657</td><td>ok</td><td>13.737681</td><td>14.267572</td></tr>
+<tr><td>day_of_week</td><td>0.020373</td><td>ok</td><td>3.01087</td><td>3.217391</td></tr>
+<tr><td>is_weekend</td><td>0.019757</td><td>ok</td><td>0.282609</td><td>0.347826</td></tr>
+<tr><td>rolling_mean_24h</td><td>0.003282</td><td>ok</td><td>18.911403</td><td>18.697753</td></tr>
+<tr><td>lag_168h</td><td>0.0013</td><td>ok</td><td>18.778428</td><td>18.942893</td></tr>
+<tr><td>lag_24h</td><td>0.000165</td><td>ok</td><td>18.902268</td><td>18.736922</td></tr>
+<tr><td>lag_1h</td><td>5.8e-05</td><td>ok</td><td>18.914301</td><td>18.494461</td></tr>
+<tr><td>PULocationID</td><td>0.0</td><td>ok</td><td>132.5</td><td>132.5</td></tr>
+<tr><td>hour</td><td>0.0</td><td>ok</td><td>11.5</td><td>11.5</td></tr></tbody>
+  </table>
+</body>
+</html>
