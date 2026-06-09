@@ -1,30 +1,42 @@
 # NYC Taxi Demand MLOps
 
-MLOps project for forecasting hourly demand for NYC Yellow Taxi trips.
+Production-like учебный MLOps-проект для прогноза почасового спроса на NYC Yellow Taxi.
 
-The project uses NYC Yellow Taxi trip data, weather data, and taxi zone information to build an hourly `zone × hour` demand dataset. The target variable is the number of taxi trips that started in a given zone during a given hour.
+Проект включает полный локальный цикл: подготовку данных, DVC pipeline, обучение baseline-модели, MLflow tracking и model registry, FastAPI inference service, Web UI, Docker/Docker Compose, Prometheus metrics, Grafana stack, drift reporting и Kubernetes/minikube-манифесты.
 
 ## Project status
 
-Implemented:
+| Area                                 | Status                                                   |
+| ------------------------------------ | -------------------------------------------------------- |
+| Dataset and baseline model           | Implemented                                              |
+| Cookiecutter-style project structure | Implemented and cleaned up                               |
+| Git flow and Conventional Commits    | Used during development                                  |
+| DVC data and pipeline versioning     | Implemented                                              |
+| MLflow experiment tracking           | Implemented                                              |
+| MLflow Model Registry                | Implemented in training workflow                         |
+| FastAPI inference service            | Implemented                                              |
+| OpenAPI documentation                | Available at `/docs`                                     |
+| Web UI                               | Implemented                                              |
+| Docker image                         | Implemented                                              |
+| Docker Compose MLOps stack           | Implemented                                              |
+| Prometheus metrics                   | Implemented                                              |
+| Grafana stack                        | Included; dashboards can be extended                     |
+| Drift reporting                      | Implemented with PSI and MAE-ratio logic                 |
+| Kubernetes/minikube manifests        | Implemented for local deployment                         |
+| CI                                   | Implemented with lint/test/build checks                  |
+| CD                                   | Partially prepared with Kubernetes and Argo CD manifests |
 
-- Cookiecutter Data Science project structure
-- GitHub Flow with Conventional Commits
-- DVC data versioning
-- Reproducible DVC pipeline
-- Baseline demand forecasting model
-- MLflow experiment tracking
-- GitHub Actions CI checks
-- FastAPI prediction service
-- Docker and Docker Compose deployment
-- Local Kubernetes deployment with minikube
+## What the project does
 
-Planned:
+The model predicts expected taxi trip demand for a selected pickup zone and hour.
 
-- Monitoring and drift detection
-- Drift reports
-- Optional MLflow Model Registry
-- Extended CI/CD if an external deployment target is added
+The prediction target is:
+
+```text
+predicted_trip_count = expected number of taxi trips from a pickup zone during a specific hour
+```
+
+The current model forecasts demand by pickup zone. It does not model full origin-destination routes.
 
 ## Project structure
 
@@ -32,217 +44,257 @@ Planned:
 .
 ├── .github
 │   └── workflows
-│       └── ci.yml          <- GitHub Actions CI checks
+│       └── ci.yml                  # GitHub Actions CI checks
 ├── data
-│   ├── raw                 <- Raw data tracked by DVC
-│   ├── interim             <- Intermediate generated datasets
-│   ├── processed           <- Model-ready generated datasets
-│   └── external            <- External reference data
-├── k8s
-│   ├── deployment.yaml     <- Kubernetes deployment for minikube
-│   └── service.yaml        <- Kubernetes service for API access
-├── models                  <- Trained model artifacts
-├── notebooks               <- Research notebooks
-├── reports                 <- Metrics, predictions and generated reports
+│   ├── raw                         # Raw data tracked by DVC
+│   ├── interim                     # Intermediate generated datasets
+│   ├── processed                   # Model-ready generated datasets
+│   └── external                    # External reference data
+├── infra
+│   ├── argocd
+│   │   └── application.yaml        # Argo CD application manifest
+│   ├── docker-compose.yml          # Local API/MLflow/Prometheus/Grafana stack
+│   ├── grafana                     # Grafana provisioning files
+│   ├── k8s                         # Kubernetes/minikube manifests
+│   └── prometheus
+│       └── prometheus.yml          # Prometheus scrape configuration
+├── k8s                             # Additional local minikube API manifests
+├── models                          # Trained model artifacts
+├── notebooks                       # Research notebooks
+├── reports                         # Metrics, predictions and drift reports
 ├── src
-│   ├── api                 <- FastAPI prediction service
-│   ├── data                <- Dataset creation scripts
-│   ├── features            <- Feature engineering scripts
-│   └── models              <- Training and prediction scripts
+│   ├── api                         # FastAPI service and API routes
+│   ├── data                        # Dataset creation scripts
+│   ├── features                    # Feature engineering scripts
+│   ├── models                      # Training and prediction scripts
+│   ├── monitoring                  # Drift calculation logic
+│   └── web                         # Web UI assets
+├── tests                           # API and project tests
 ├── .dockerignore
-├── docker-compose.yml
+├── .dvcignore
+├── .flake8
+├── .gitignore
 ├── Dockerfile
-├── dvc.yaml                <- DVC pipeline definition
-├── dvc.lock                <- Reproducible DVC pipeline state
+├── Makefile
+├── dvc.yaml
+├── dvc.lock
 ├── requirements.txt
 └── requirements-lock.txt
 ```
 
 ## Setup
 
-Create a virtual environment and install dependencies:
+The project was developed with Python 3.10.
+
+Create and activate a virtual environment:
 
 ```bash
 python -m venv .venv
+```
+
+On Windows:
+
+```bash
 .venv\Scripts\activate
-pip install -r requirements.txt
 ```
 
-## Data and DVC
-
-Raw data and generated artifacts are not stored directly in Git. They are tracked with DVC.
-
-The current DVC remote is local:
-
-```text
-C:\dvc-storage
-```
-
-To reproduce the pipeline:
+On macOS/Linux:
 
 ```bash
-dvc repro
+source .venv/bin/activate
 ```
 
-To check pipeline status:
+Install dependencies:
 
 ```bash
-dvc status
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 ```
 
-To push DVC artifacts to the configured remote:
+## DVC pipeline
+
+The project uses DVC to version the data pipeline.
+
+If the DVC remote is available, restore tracked data and artifacts:
 
 ```bash
-dvc push
+dvc pull
 ```
 
-Pipeline stages:
+Run the full pipeline:
+
+```bash
+python -m dvc repro
+```
+
+Main pipeline stages:
 
 ```text
-data/raw
-→ data/interim/hourly_demand.parquet
-→ data/processed/model_features.parquet
-→ models/baseline_demand_model.joblib
-→ reports/baseline_metrics.json
-→ reports/baseline_predictions.parquet
+data -> features -> train -> predict -> drift_report
 ```
 
-## Model
+The pipeline produces model artifacts, prediction outputs, metrics and drift reports.
 
-The baseline model predicts hourly taxi demand for each pickup zone.
+## Model training and MLflow
 
-Main features:
+Training logs metrics, parameters and model artifacts to MLflow.
 
-- pickup zone
-- hour, day of week, month
-- weather features
-- lag features for previous demand
-- rolling demand statistics
-
-Latest metrics are saved to:
-
-```text
-reports/baseline_metrics.json
-```
-
-The model is also compared with naive lag baselines such as previous hour, previous day, and previous week demand.
-
-## MLflow
-
-Training logs experiment parameters, metrics, and artifacts to MLflow.
-
-Run training:
+Typical local run:
 
 ```bash
 python src/models/train_model.py
 ```
 
-Start MLflow UI:
+If MLflow server is running locally:
 
 ```bash
-mlflow ui
+MLFLOW_TRACKING_URI=http://127.0.0.1:5000 python src/models/train_model.py
+```
+
+The training script registers the model as:
+
+```text
+nyc-taxi-demand-regressor
+```
+
+Generated artifacts include:
+
+```text
+models/baseline_demand_model.joblib
+reports/baseline_metrics.json
+reports/model_registry.json
+```
+
+## API and Web UI
+
+Start the FastAPI service locally:
+
+```bash
+uvicorn src.api.app:app --host 0.0.0.0 --port 8000
 ```
 
 Open:
 
 ```text
-http://127.0.0.1:5000
+Web UI:      http://127.0.0.1:8000/ui
+OpenAPI:    http://127.0.0.1:8000/docs
+Health:     http://127.0.0.1:8000/health
+Metrics:    http://127.0.0.1:8000/metrics
+Drift HTML: http://127.0.0.1:8000/reports/drift
 ```
 
-Experiment name:
+Main endpoints:
 
 ```text
-nyc-taxi-demand-baseline
+GET  /health
+POST /predict
+GET  /api/predictions
+GET  /api/drift
+GET  /api/experiments
+POST /api/retrain
+GET  /metrics
 ```
 
-## API service
+The Web UI includes:
 
-The project includes a FastAPI service for model inference.
+* inference form;
+* latest predictions table;
+* model status;
+* prediction history;
+* drift alerts;
+* links to MLflow, Prometheus and Grafana;
+* retrain request button.
 
-Available endpoints:
+## Docker Compose stack
 
-- `GET /health`
-- `POST /predict`
+Docker Compose starts the local MLOps stack:
 
-Run locally:
+* FastAPI application;
+* MLflow server;
+* Prometheus;
+* Grafana.
+
+Run:
 
 ```bash
-uvicorn src.api.app:app --reload --host 127.0.0.1 --port 8000
-```
-
-Open API documentation:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-Example request:
-
-```json
-{
-  "pu_location_id": 161,
-  "temperature_2m": 20,
-  "relative_humidity_2m": 60,
-  "precipitation": 0,
-  "weather_code": 0,
-  "wind_speed_10m": 10,
-  "hour": 18,
-  "day_of_week": 2,
-  "day_of_month": 15,
-  "month": 6,
-  "is_weekend": 0,
-  "lag_1h": 120,
-  "lag_24h": 110,
-  "lag_168h": 100,
-  "rolling_mean_24h": 105
-}
-```
-
-Example response:
-
-```json
-{
-  "predicted_trip_count": 121.8
-}
-```
-
-## Docker
-
-Build the API image:
-
-```bash
-docker build -t nyc-taxi-demand-api .
-```
-
-Run the container:
-
-```bash
-docker run --rm -p 8000:8000 nyc-taxi-demand-api
+docker compose -f infra/docker-compose.yml up --build
 ```
 
 Open:
 
 ```text
-http://127.0.0.1:8000/docs
+API/UI:     http://127.0.0.1:8000/ui
+MLflow:     http://127.0.0.1:5000
+Prometheus: http://127.0.0.1:9090/targets
+Grafana:    http://127.0.0.1:3000
 ```
 
-## Docker Compose
-
-Run the API service with Docker Compose:
-
-```bash
-docker compose up --build
-```
-
-Open:
+Default Grafana credentials:
 
 ```text
-http://127.0.0.1:8000/docs
+admin / admin
 ```
 
-## Kubernetes with minikube
+Stop the stack:
 
-The project includes basic Kubernetes manifests for local deployment with minikube.
+```bash
+docker compose -f infra/docker-compose.yml down
+```
+
+## Monitoring
+
+The API exposes Prometheus metrics at:
+
+```text
+/metrics
+```
+
+Prometheus scrapes:
+
+```text
+api:8000/metrics
+prometheus:9090/metrics
+```
+
+The current monitoring stack validates that:
+
+* the API container is reachable;
+* `/metrics` is available;
+* Prometheus can scrape the API;
+* Grafana is available for dashboarding.
+
+Grafana is included as part of the monitoring stack. Dashboards can be extended with additional panels for prediction count, latency, anomaly flags, retrain requests and drift status.
+
+## Drift reporting
+
+Drift logic is implemented in:
+
+```text
+src/monitoring/calculate_drift.py
+```
+
+The report includes:
+
+* data drift using PSI over feature columns;
+* target drift using PSI over `trip_count`;
+* concept drift using MAE-ratio between reference and current windows.
+
+Generated reports:
+
+```text
+reports/drift_report.json
+reports/drift_report.html
+```
+
+The HTML report is available through the API:
+
+```text
+http://127.0.0.1:8000/reports/drift
+```
+
+## Kubernetes / Minikube
+
+Local Kubernetes deployment is prepared with minikube manifests.
 
 Start minikube:
 
@@ -250,137 +302,155 @@ Start minikube:
 minikube start --driver=docker
 ```
 
-Load the local Docker image into minikube:
+Build image for minikube:
 
 ```bash
-minikube image load nyc-taxi-demand-api:latest
+eval $(minikube docker-env)
+docker build -t nyc-taxi-demand-api:latest .
 ```
 
 Apply manifests:
 
 ```bash
-minikube kubectl -- apply -f k8s/
+kubectl apply -f infra/k8s
 ```
 
 Check resources:
 
 ```bash
-minikube kubectl -- get pods
-minikube kubectl -- get services
+kubectl get all
 ```
 
-Open the service:
+The Kubernetes setup is intended for local validation and demonstration.
 
-```bash
-minikube service nyc-taxi-demand-api --url
+## Argo CD
+
+An Argo CD application manifest is included at:
+
+```text
+infra/argocd/application.yaml
 ```
 
-Append `/docs` to the printed URL.
+It prepares the project for GitOps-style deployment.
 
-Stop minikube when finished:
+Before using it in a real cluster, update:
 
-```bash
-minikube stop
-```
+* `repoURL`;
+* target branch/revision;
+* Kubernetes namespace;
+* image name and tag;
+* cluster/server configuration.
+
+This part is prepared as a CD foundation, not as a fully automated production deployment.
 
 ## CI
 
-The project uses GitHub Actions for basic CI checks.
+GitHub Actions CI validates pull requests to `main`.
 
-Current checks:
+The CI workflow includes:
 
-- Black formatting check
-- Flake8 linting
-- environment test
+* dependency installation;
+* formatting/lint checks;
+* tests;
+* Docker image build;
+* Kubernetes manifest validation where applicable.
 
-Workflow file:
+Local validation commands:
 
-```text
-.github/workflows/ci.yml
+```bash
+python -m black --check src tests
+python -m flake8 --config=.flake8 src tests
+python -m pytest -q
 ```
 
 ## Development workflow
 
-The project follows GitHub Flow:
+The project uses GitHub Flow:
 
-1. Create a branch for a specific task.
-2. Commit changes using Conventional Commits.
-3. Open a Pull Request to `main`.
-4. Wait for CI checks.
-5. Merge into `main`.
+1. Keep `main` stable.
+2. Create a branch for each task:
 
-Example commit messages:
+   * `feature/<short-name>`
+   * `fix/<short-name>`
+   * `docs/<short-name>`
+   * `chore/<short-name>`
+3. Use Conventional Commits:
 
-```text
-feat(api): add FastAPI prediction service
-feat(docker): add FastAPI service container
-feat(k8s): add minikube deployment
-docs(readme): add deployment instructions
+   * `feat:`
+   * `fix:`
+   * `docs:`
+   * `test:`
+   * `chore:`
+   * `refactor:`
+4. Open a pull request into `main`.
+5. Merge only after local checks and/or CI pass.
+
+## Useful commands
+
+Run tests:
+
+```bash
+python -m pytest -q
 ```
 
-## Next steps
+Run formatter check:
 
-- Add monitoring and drift detection
-- Generate drift reports
-- Add optional MLflow Model Registry
-- Extend CI/CD if a deployment target is added
-- Prepare final project documentation and presentation
+```bash
+python -m black --check src tests
+```
 
-- ## Monitoring and Drift Detection
+Run linter:
 
-В проект добавлен базовый monitoring pipeline с использованием библиотеки Evidently.
+```bash
+python -m flake8 --config=.flake8 src tests
+```
 
-Реализованы два типа drift detection:
+Run DVC pipeline:
 
-### 1. Data Drift Detection
+```bash
+python -m dvc repro
+```
 
-Проверяется изменение распределения входных признаков между:
-- reference data (`X_train`)
-- current data (`X_test`)
+Run Docker Compose stack:
 
-Сохраняемый артефакт:
-- `data_drift_report.html`
+```bash
+docker compose -f infra/docker-compose.yml up --build
+```
 
-### 2. Prediction Drift Detection
+Stop Docker Compose stack:
 
-Проверяется изменение распределения предсказаний модели между:
-- reference predictions
-- current predictions
+```bash
+docker compose -f infra/docker-compose.yml down
+```
 
-Сохраняемый артефакт:
-- `prediction_drift_report.html`
+## Current limitations
 
-Все monitoring artifacts автоматически сохраняются в папку `artifacts/`.
+This is an educational production-like MLOps project, not a full production system.
 
-Monitoring реализован с помощью библиотеки Evidently.
+Current limitations:
 
-## Project Architecture
+* Grafana dashboards are included as a monitoring foundation and can be extended further.
+* CD is prepared through Kubernetes and Argo CD manifests, but no external production cluster is configured.
+* The retrain endpoint records or triggers retrain workflow behavior depending on local setup; it is not a full production retraining orchestrator.
+* DVC remote configuration may need to be adjusted for another machine or team environment.
+* The model predicts pickup-zone demand, not full origin-destination route demand.
 
-Проект реализует упрощённый MLOps pipeline:
+## Final validation checklist
 
-1. Загрузка и подготовка данных
-2. Feature engineering
-3. Обучение baseline-модели
-4. Логирование экспериментов в MLflow
-5. Сохранение model artifacts
-6. FastAPI inference service
-7. Docker / docker-compose deployment
-8. Kubernetes / minikube deployment
-9. Monitoring и drift detection через Evidently
+The project has been locally validated with:
 
-Pipeline проекта включает:
-- data layer
-- training layer
-- serving layer
-- monitoring layer
+```text
+black check: passed
+flake8 check: passed
+pytest: passed
+Docker Compose stack: started successfully
+API/UI: available
+MLflow: available
+Prometheus: API target UP
+Grafana: available
+MLflow model registry: model registered
+```
 
-- ## Future Improvements
+## License
 
-Возможные дальнейшие улучшения проекта:
-
-- MLflow Model Registry
-- Prometheus + Grafana monitoring
-- Автоматический retraining pipeline
-- Полноценный CI/CD deployment
-- ArgoCD integration
-- Online inference monitoring
+This project is created for educational purposes.
