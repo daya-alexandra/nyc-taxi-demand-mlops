@@ -1,10 +1,15 @@
 Commands
 ========
 
-The Makefile contains the central entry points for common tasks related to this project.
+The root ``Makefile`` is the canonical command index.
 
-Syncing data to S3
-^^^^^^^^^^^^^^^^^^
-
-* `make sync_data_to_s3` will use `aws s3 sync` to recursively sync files in `data/` up to `s3://[OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')/data/`.
-* `make sync_data_from_s3` will use `aws s3 sync` to recursively sync files from `s3://[OPTIONAL] your-bucket-for-syncing-data (do not include 's3://')/data/` to `data/`.
+* ``make install`` installs the locked development environment.
+* ``make repro`` reproduces the DVC graph.
+* ``make repro-real`` requires the real raw dataset.
+* ``make validate`` runs formatting, lint, security checks and tests.
+* ``make api`` starts FastAPI and the Web UI.
+* ``make mlflow`` starts the local MLflow server.
+* ``make docker-build`` builds a runnable image.
+* ``make compose-up`` starts API, MLflow, Prometheus and Grafana.
+* ``make k8s-apply`` applies the local Minikube overlay.
+* ``make k8s-apply-base`` applies the GHCR/Argo CD base manifests.

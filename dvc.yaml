@@ -6,6 +6,9 @@ stages:
       - src/data/make_dataset.py
     outs:
       - data/interim/hourly_demand.parquet
+    metrics:
+      - reports/data_profile.json:
+          cache: false
 
   build_features:
     cmd: python src/features/build_features.py
@@ -25,6 +28,8 @@ stages:
     metrics:
       - reports/baseline_metrics.json:
           cache: false
+      - reports/model_registry.json:
+          cache: false
 
   predict_model:
     cmd: python src/models/predict_model.py
@@ -34,3 +39,16 @@ stages:
       - src/models/predict_model.py
     outs:
       - reports/baseline_predictions.parquet
+
+  drift_report:
+    cmd: python src/monitoring/calculate_drift.py
+    deps:
+      - data/processed/model_features.parquet
+      - reports/baseline_predictions.parquet
+      - src/monitoring/calculate_drift.py
+    metrics:
+      - reports/drift_report.json:
+          cache: false
+    outs:
+      - reports/drift_report.html:
+          cache: false

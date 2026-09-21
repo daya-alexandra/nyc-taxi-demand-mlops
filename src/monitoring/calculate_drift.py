@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
+from html import escape
 from pathlib import Path
 from typing import Iterable
 
@@ -39,10 +40,17 @@ FEATURE_COLUMNS = [
     "rolling_mean_24h",
 ]
 
+# Month and day_of_month advance deterministically with time and would always
+# dominate PSI in adjacent time windows without indicating an input-data fault.
+DRIFT_FEATURE_COLUMNS = [
+    column for column in FEATURE_COLUMNS if column not in {"month", "day_of_month"}
+]
+
 PSI_WARNING_THRESHOLD = 0.1
 PSI_CRITICAL_THRESHOLD = 0.2
 CONCEPT_WARNING_RATIO = 1.25
 CONCEPT_CRITICAL_RATIO = 1.5
+MONITORING_WINDOW_FRACTION = 0.2
 
 
 def utc_now() -> str:
@@ -50,11 +58,24 @@ def utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def split_reference_current(data: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Split a time-ordered table into reference and current windows."""
-    data = data.sort_values(PICKUP_HOUR_COL).copy()
-    split_index = int(len(data) * 0.8)
-    return data.iloc[:split_index].copy(), data.iloc[split_index:].copy()
+def split_reference_current(
+    data: pd.DataFrame,
+    window_fraction: float = MONITORING_WINDOW_FRACTION,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Build equal adjacent windows without splitting a timestamp across them."""
+    data = data.sort_values([PICKUP_HOUR_COL]).copy()
+    unique_hours = pd.Index(data[PICKUP_HOUR_COL].drop_duplicates().sort_values())
+    if len(unique_hours) < 2:
+        raise ValueError("At least two timestamps are required for drift calculation")
+
+    window_size = max(1, int(len(unique_hours) * window_fraction))
+    window_size = min(window_size, len(unique_hours) // 2)
+    reference_hours = unique_hours[-2 * window_size : -window_size]
+    current_hours = unique_hours[-window_size:]
+
+    reference = data[data[PICKUP_HOUR_COL].isin(reference_hours)].copy()
+    current = data[data[PICKUP_HOUR_COL].isin(current_hours)].copy()
+    return reference, current
 
 
 def severity_from_psi(psi: float) -> str:
@@ -66,9 +87,7 @@ def severity_from_psi(psi: float) -> str:
     return "ok"
 
 
-def psi_from_distributions(
-    reference: Iterable[float], current: Iterable[float]
-) -> float:
+def psi_from_distributions(reference: Iterable[float], current: Iterable[float]) -> float:
     """Calculate population stability index from aligned distributions."""
     epsilon = 1e-6
     reference_values = np.asarray(list(reference), dtype=float) + epsilon
@@ -77,9 +96,7 @@ def psi_from_distributions(
     reference_values = reference_values / reference_values.sum()
     current_values = current_values / current_values.sum()
 
-    psi = np.sum(
-        (current_values - reference_values) * np.log(current_values / reference_values)
-    )
+    psi = np.sum((current_values - reference_values) * np.log(current_values / reference_values))
     return float(psi)
 
 
@@ -97,37 +114,27 @@ def numeric_psi(reference: pd.Series, current: pd.Series, bins: int = 10) -> flo
     if len(edges) < 3:
         categories = sorted(set(reference.astype(str)).union(set(current.astype(str))))
         reference_counts = (
-            reference.astype(str)
-            .value_counts(normalize=True)
-            .reindex(categories, fill_value=0)
+            reference.astype(str).value_counts(normalize=True).reindex(categories, fill_value=0)
         )
         current_counts = (
-            current.astype(str)
-            .value_counts(normalize=True)
-            .reindex(categories, fill_value=0)
+            current.astype(str).value_counts(normalize=True).reindex(categories, fill_value=0)
         )
         return psi_from_distributions(reference_counts, current_counts)
 
     edges[0] = -np.inf
     edges[-1] = np.inf
 
-    reference_counts = pd.cut(reference, bins=edges).value_counts(
-        normalize=True, sort=False
-    )
-    current_counts = pd.cut(current, bins=edges).value_counts(
-        normalize=True, sort=False
-    )
+    reference_counts = pd.cut(reference, bins=edges).value_counts(normalize=True, sort=False)
+    current_counts = pd.cut(current, bins=edges).value_counts(normalize=True, sort=False)
 
     return psi_from_distributions(reference_counts, current_counts)
 
 
-def calculate_data_drift(
-    reference: pd.DataFrame, current: pd.DataFrame
-) -> list[dict[str, object]]:
+def calculate_data_drift(reference: pd.DataFrame, current: pd.DataFrame) -> list[dict[str, object]]:
     """Calculate PSI drift for every model feature."""
     feature_reports: list[dict[str, object]] = []
 
-    for column in FEATURE_COLUMNS:
+    for column in DRIFT_FEATURE_COLUMNS:
         psi = numeric_psi(reference[column], current[column])
         feature_reports.append(
             {
@@ -142,9 +149,7 @@ def calculate_data_drift(
     return sorted(feature_reports, key=lambda item: item["psi"], reverse=True)
 
 
-def calculate_target_drift(
-    reference: pd.DataFrame, current: pd.DataFrame
-) -> dict[str, object]:
+def calculate_target_drift(reference: pd.DataFrame, current: pd.DataFrame) -> dict[str, object]:
     """Calculate target drift on trip_count."""
     psi = numeric_psi(reference[TARGET_COL], current[TARGET_COL])
     return {
@@ -161,8 +166,12 @@ def calculate_target_drift(
 
 
 def calculate_concept_drift(predictions: pd.DataFrame) -> dict[str, object]:
-    """Estimate concept drift through model error growth."""
-    reference, current = split_reference_current(predictions)
+    """Estimate concept drift from two adjacent recent error windows."""
+    unique_hours = pd.Index(predictions[PICKUP_HOUR_COL].drop_duplicates().sort_values())
+    evaluation_size = max(2, int(len(unique_hours) * MONITORING_WINDOW_FRACTION))
+    evaluation_start = unique_hours[-evaluation_size]
+    evaluation_data = predictions[predictions[PICKUP_HOUR_COL] >= evaluation_start].copy()
+    reference, current = split_reference_current(evaluation_data, window_fraction=0.5)
     reference_mae = float(reference[ABSOLUTE_ERROR_COL].mean())
     current_mae = float(current[ABSOLUTE_ERROR_COL].mean())
     ratio = current_mae / max(reference_mae, 1e-6)
@@ -178,7 +187,7 @@ def calculate_concept_drift(predictions: pd.DataFrame) -> dict[str, object]:
         "type": "concept_drift",
         "severity": severity,
         "title": "Concept drift",
-        "message": f"MAE current/reference ratio = {ratio:.2f}.",
+        "message": f"Recent-window MAE current/reference ratio = {ratio:.2f}.",
         "metrics": {
             "reference_mae": round(reference_mae, 6),
             "current_mae": round(current_mae, 6),
@@ -187,9 +196,7 @@ def calculate_concept_drift(predictions: pd.DataFrame) -> dict[str, object]:
     }
 
 
-def build_report(
-    features: pd.DataFrame, predictions: pd.DataFrame
-) -> dict[str, object]:
+def build_report(features: pd.DataFrame, predictions: pd.DataFrame) -> dict[str, object]:
     """Build combined drift report."""
     reference_features, current_features = split_reference_current(features)
     feature_drift = calculate_data_drift(reference_features, current_features)
@@ -239,6 +246,12 @@ def build_report(
 
     return {
         "generated_at": utc_now(),
+        "windows": {
+            "reference_start": str(reference_features[PICKUP_HOUR_COL].min()),
+            "reference_end": str(reference_features[PICKUP_HOUR_COL].max()),
+            "current_start": str(current_features[PICKUP_HOUR_COL].min()),
+            "current_end": str(current_features[PICKUP_HOUR_COL].max()),
+        },
         "summary": {
             "status": status,
             "active_alerts": active_alerts,
@@ -264,6 +277,16 @@ def write_html_report(report: dict[str, object]) -> None:
         "</tr>"
         for item in report["feature_drift"]
     )
+    alert_rows = "\n".join(
+        "<tr>"
+        f"<td>{escape(str(item['title']))}</td>"
+        f"<td><span class=\"status {escape(str(item['severity']))}\">"
+        f"{escape(str(item['severity']))}</span></td>"
+        f"<td>{escape(str(item['message']))}</td>"
+        "</tr>"
+        for item in report["items"]
+    )
+    windows = report["windows"]
 
     html = f"""<!doctype html>
 <html lang="en">
@@ -281,12 +304,31 @@ def write_html_report(report: dict[str, object]) -> None:
       border-radius: 999px;
       background: #dff4ef;
     }}
+    .status.warning {{ background: #fff3cf; }}
+    .status.critical {{ background: #fee4e2; color: #b42318; }}
+    .window {{ color: #52625b; }}
   </style>
 </head>
 <body>
   <h1>NYC Taxi Drift Report</h1>
   <p>Generated at: {report['generated_at']}</p>
-  <p>Status: <span class="status">{report['summary']['status']}</span></p>
+  <p>
+    Status:
+    <span class="status {report['summary']['status']}">
+      {report['summary']['status']}
+    </span>
+  </p>
+  <p class="window">
+    Reference: {windows['reference_start']} — {windows['reference_end']}<br />
+    Current: {windows['current_start']} — {windows['current_end']}
+  </p>
+  <h2>Drift Signals</h2>
+  <table>
+    <thead>
+      <tr><th>Signal</th><th>Severity</th><th>Explanation</th></tr>
+    </thead>
+    <tbody>{alert_rows}</tbody>
+  </table>
   <h2>Feature Drift</h2>
   <table>
     <thead>

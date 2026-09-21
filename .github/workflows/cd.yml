@@ -1,0 +1,96 @@
+name: CD
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish-image:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      NYC_TAXI_DATA_MODE: sample
+      MLFLOW_TRACKING_URI: sqlite:///${{ github.workspace }}/mlflow-cd.db
+      MLFLOW_DISABLE_AGENT_HINT: "1"
+      DVC_NO_ANALYTICS: "1"
+
+    steps:
+      - name: Checkout validated revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_SHA }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: requirements-lock.txt
+
+      - name: Build model artifacts
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-lock.txt
+          python -m dvc repro --force
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ env.SOURCE_SHA }}
+            ghcr.io/${{ github.repository }}:latest
+
+  argo-sync:
+    needs: publish-image
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      ARGOCD_SERVER: ${{ secrets.ARGOCD_SERVER }}
+      ARGOCD_USERNAME: ${{ secrets.ARGOCD_USERNAME }}
+      ARGOCD_PASSWORD: ${{ secrets.ARGOCD_PASSWORD }}
+
+    steps:
+      - name: Skip Argo CD sync when credentials are absent
+        if: env.ARGOCD_SERVER == ''
+        run: echo "Argo CD credentials are not configured; the GHCR image was still published."
+
+      - name: Install Argo CD CLI
+        if: env.ARGOCD_SERVER != ''
+        run: |
+          curl --fail --silent --show-error --location \
+            --output argocd \
+            https://github.com/argoproj/argo-cd/releases/download/v3.5.2/argocd-linux-amd64
+          chmod +x argocd
+          sudo mv argocd /usr/local/bin/argocd
+
+      - name: Deploy validated image through Argo CD
+        if: env.ARGOCD_SERVER != ''
+        run: |
+          argocd login "$ARGOCD_SERVER" \
+            --username "$ARGOCD_USERNAME" \
+            --password "$ARGOCD_PASSWORD" \
+            --grpc-web
+          argocd app set nyc-taxi-demand-mlops \
+            --kustomize-image "nyc-taxi-demand-api=ghcr.io/${{ github.repository }}:${SOURCE_SHA}" \
+            --grpc-web
+          argocd app sync nyc-taxi-demand-mlops --grpc-web
+          argocd app wait nyc-taxi-demand-mlops --health --timeout 300 --grpc-web

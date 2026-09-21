@@ -1,10 +1,16 @@
 {
-  "generated_at": "2026-06-09T12:10:57+00:00",
+  "generated_at": "2026-09-21T09:40:35+00:00",
+  "windows": {
+    "reference_start": "2024-05-16 00:00:00",
+    "reference_end": "2024-06-07 23:00:00",
+    "current_start": "2024-06-08 00:00:00",
+    "current_end": "2024-06-30 23:00:00"
+  },
   "summary": {
     "status": "critical",
     "active_alerts": 1,
     "last_report": "reports/drift_report.html",
-    "data_drift_features": 5,
+    "data_drift_features": 3,
     "target_drift_severity": "ok",
     "concept_drift_severity": "ok"
   },
@@ -13,134 +19,120 @@
       "type": "data_drift",
       "severity": "critical",
       "title": "Data drift",
-      "message": "5 features above PSI threshold. Max PSI: month = 14.464891.",
+      "message": "3 features above PSI threshold. Max PSI: temperature_2m = 7.057472.",
       "metrics": {
-        "drifted_features": 5,
-        "max_psi": 14.464891,
-        "max_psi_feature": "month"
+        "drifted_features": 3,
+        "max_psi": 7.057472,
+        "max_psi_feature": "temperature_2m"
       }
     },
     {
       "type": "target_drift",
       "severity": "ok",
       "title": "Target drift",
-      "message": "PSI \u043f\u043e target trip_count = 0.000.",
+      "message": "PSI \u043f\u043e target trip_count = 0.080.",
       "metrics": {
-        "psi": 5.3e-05,
-        "reference_mean": 18.919414,
-        "current_mean": 18.455456
+        "psi": 0.080215,
+        "reference_mean": 24.289583,
+        "current_mean": 27.418207
       }
     },
     {
       "type": "concept_drift",
       "severity": "ok",
       "title": "Concept drift",
-      "message": "MAE current/reference ratio = 1.10.",
+      "message": "Recent-window MAE current/reference ratio = 1.09.",
       "metrics": {
-        "reference_mae": 3.103404,
-        "current_mae": 3.424856,
-        "mae_ratio": 1.10358
+        "reference_mae": 4.144782,
+        "current_mae": 4.53092,
+        "mae_ratio": 1.093163
       }
     }
   ],
   "feature_drift": [
     {
-      "feature": "month",
-      "psi": 14.464891,
-      "severity": "critical",
-      "reference_mean": 4.228261,
-      "current_mean": 6.0
-    },
-    {
       "feature": "temperature_2m",
-      "psi": 7.053135,
+      "psi": 7.057472,
       "severity": "critical",
-      "reference_mean": 12.692301,
-      "current_mean": 23.625906
-    },
-    {
-      "feature": "day_of_month",
-      "psi": 2.726098,
-      "severity": "critical",
-      "reference_mean": 15.836957,
-      "current_mean": 19.0
+      "reference_mean": 21.326725,
+      "current_mean": 13.927855
     },
     {
       "feature": "relative_humidity_2m",
-      "psi": 0.217769,
+      "psi": 0.87573,
       "severity": "critical",
-      "reference_mean": 68.767663,
-      "current_mean": 62.807971
-    },
-    {
-      "feature": "weather_code",
-      "psi": 0.134265,
-      "severity": "warning",
-      "reference_mean": 10.662591,
-      "current_mean": 5.201087
-    },
-    {
-      "feature": "precipitation",
-      "psi": 0.065776,
-      "severity": "ok",
-      "reference_mean": 0.177627,
-      "current_mean": 0.093841
-    },
-    {
-      "feature": "wind_speed_10m",
-      "psi": 0.05657,
-      "severity": "ok",
-      "reference_mean": 13.737681,
-      "current_mean": 14.267572
-    },
-    {
-      "feature": "day_of_week",
-      "psi": 0.020373,
-      "severity": "ok",
-      "reference_mean": 3.01087,
-      "current_mean": 3.217391
-    },
-    {
-      "feature": "is_weekend",
-      "psi": 0.019757,
-      "severity": "ok",
-      "reference_mean": 0.282609,
-      "current_mean": 0.347826
+      "reference_mean": 48.849491,
+      "current_mean": 60.048566
     },
     {
       "feature": "rolling_mean_24h",
-      "psi": 0.003282,
-      "severity": "ok",
-      "reference_mean": 18.911403,
-      "current_mean": 18.697753
-    },
-    {
-      "feature": "lag_168h",
-      "psi": 0.0013,
-      "severity": "ok",
-      "reference_mean": 18.778428,
-      "current_mean": 18.942893
-    },
-    {
-      "feature": "lag_24h",
-      "psi": 0.000165,
-      "severity": "ok",
-      "reference_mean": 18.902268,
-      "current_mean": 18.736922
+      "psi": 0.174227,
+      "severity": "warning",
+      "reference_mean": 24.379495,
+      "current_mean": 27.090248
     },
     {
       "feature": "lag_1h",
-      "psi": 5.8e-05,
+      "psi": 0.07915,
       "severity": "ok",
-      "reference_mean": 18.914301,
-      "current_mean": 18.494461
+      "reference_mean": 24.29058,
+      "current_mean": 27.394384
+    },
+    {
+      "feature": "day_of_week",
+      "psi": 0.050031,
+      "severity": "ok",
+      "reference_mean": 3.043478,
+      "current_mean": 3.217391
+    },
+    {
+      "feature": "lag_24h",
+      "psi": 0.046334,
+      "severity": "ok",
+      "reference_mean": 24.460236,
+      "current_mean": 26.784511
+    },
+    {
+      "feature": "is_weekend",
+      "psi": 0.035899,
+      "severity": "ok",
+      "reference_mean": 0.26087,
+      "current_mean": 0.347826
+    },
+    {
+      "feature": "precipitation",
+      "psi": 0.001572,
+      "severity": "ok",
+      "reference_mean": 0.32228,
+      "current_mean": 0.327352
+    },
+    {
+      "feature": "wind_speed_10m",
+      "psi": 0.001445,
+      "severity": "ok",
+      "reference_mean": 11.978987,
+      "current_mean": 11.991812
+    },
+    {
+      "feature": "lag_168h",
+      "psi": 0.001208,
+      "severity": "ok",
+      "reference_mean": 25.692029,
+      "current_mean": 25.606159
+    },
+    {
+      "feature": "weather_code",
+      "psi": 9e-05,
+      "severity": "ok",
+      "reference_mean": 15.424728,
+      "current_mean": 15.013225
     },
     {
       "feature": "PULocationID",
       "psi": 0.0,
       "severity": "ok",
-      "reference_mean": 132.5,
-      "current_mean": 132.5
+      "reference_mean": 136.8,
+      "current_mean": 136.8
     },
     {
       "feature": "hour",

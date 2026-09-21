@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-NYC Taxi Demand MLOps documentation!
-==============================================
+NYC Taxi Demand MLOps documentation
+===================================
 
 Contents:
 
@@ -13,6 +13,9 @@ Contents:
 
    getting-started
    commands
+
+The Russian defense walkthrough and question bank are available in
+``DEFENSE_GUIDE.md`` at the repository root documentation directory.
 
 
 

@@ -68,6 +68,54 @@ data:
               "refId": "A"
             }
           ]
+        },
+        {
+          "type": "stat",
+          "title": "Offline model MAE",
+          "id": 4,
+          "datasource": "Prometheus",
+          "gridPos": {"h": 6, "w": 4, "x": 0, "y": 14},
+          "targets": [{"expr": "taxi_model_mae", "refId": "A"}]
+        },
+        {
+          "type": "stat",
+          "title": "Data drift status",
+          "id": 5,
+          "datasource": "Prometheus",
+          "gridPos": {"h": 6, "w": 4, "x": 4, "y": 14},
+          "targets": [{"expr": "taxi_data_drift_status", "refId": "A"}]
+        },
+        {
+          "type": "stat",
+          "title": "Maximum feature PSI",
+          "id": 6,
+          "datasource": "Prometheus",
+          "gridPos": {"h": 6, "w": 4, "x": 8, "y": 14},
+          "targets": [{"expr": "taxi_data_drift_max_psi", "refId": "A"}]
+        },
+        {
+          "type": "stat",
+          "title": "Target drift PSI",
+          "id": 7,
+          "datasource": "Prometheus",
+          "gridPos": {"h": 6, "w": 4, "x": 12, "y": 14},
+          "targets": [{"expr": "taxi_target_drift_psi", "refId": "A"}]
+        },
+        {
+          "type": "stat",
+          "title": "Concept drift MAE ratio",
+          "id": 8,
+          "datasource": "Prometheus",
+          "gridPos": {"h": 6, "w": 4, "x": 16, "y": 14},
+          "targets": [{"expr": "taxi_concept_drift_mae_ratio", "refId": "A"}]
+        },
+        {
+          "type": "stat",
+          "title": "Active drift alerts",
+          "id": 9,
+          "datasource": "Prometheus",
+          "gridPos": {"h": 6, "w": 4, "x": 20, "y": 14},
+          "targets": [{"expr": "taxi_drift_active_alerts", "refId": "A"}]
         }
       ]
     }
@@ -100,6 +148,19 @@ spec:
           ports:
             - name: http
               containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
           volumeMounts:
             - name: grafana-datasources
               mountPath: /etc/grafana/provisioning/datasources

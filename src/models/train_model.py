@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 import joblib
 import mlflow
@@ -17,13 +19,20 @@ PROJECT_DIR = Path(__file__).resolve().parents[2]
 PROCESSED_DATA_DIR = PROJECT_DIR / "data" / "processed"
 MODELS_DIR = PROJECT_DIR / "models"
 REPORTS_DIR = PROJECT_DIR / "reports"
-MLFLOW_TRACKING_DIR = PROJECT_DIR / "mlruns"
+MLFLOW_DB_PATH = PROJECT_DIR / "mlflow.db"
+MLFLOW_TRACKING_URI = os.getenv(
+    "MLFLOW_TRACKING_URI",
+    f"sqlite:///{MLFLOW_DB_PATH.as_posix()}",
+)
 
 INPUT_FILE_NAME = "model_features.parquet"
 MODEL_FILE_NAME = "baseline_demand_model.joblib"
 METRICS_FILE_NAME = "baseline_metrics.json"
+REGISTRY_FILE_NAME = "model_registry.json"
+DATA_PROFILE_FILE_NAME = "data_profile.json"
 
 EXPERIMENT_NAME = "nyc-taxi-demand-baseline"
+REGISTERED_MODEL_NAME = "nyc-taxi-demand-regressor"
 
 PICKUP_HOUR_COL = "pickup_hour"
 TARGET_COL = "trip_count"
@@ -53,6 +62,21 @@ FEATURE_COLUMNS = [
     "lag_168h",
     "rolling_mean_24h",
 ]
+
+
+def display_tracking_uri(tracking_uri: str) -> str:
+    """Return a report-safe tracking URI without credentials or machine paths."""
+    if tracking_uri.startswith("sqlite:///"):
+        return "sqlite:///mlflow.db"
+
+    parsed = urlsplit(tracking_uri)
+    if not parsed.hostname:
+        return tracking_uri
+
+    hostname = parsed.hostname
+    if parsed.port:
+        hostname = f"{hostname}:{parsed.port}"
+    return urlunsplit((parsed.scheme, hostname, parsed.path, parsed.query, ""))
 
 
 def split_train_test(
@@ -137,14 +161,21 @@ def log_to_mlflow(
     metrics: dict[str, dict[str, float] | int],
     model_path: Path,
     metrics_path: Path,
+    registry_path: Path,
+    data_profile_path: Path,
     train_rows: int,
     test_rows: int,
 ) -> None:
     """Log experiment parameters, metrics and artifacts to MLflow."""
-    mlflow.set_tracking_uri(MLFLOW_TRACKING_DIR.as_uri())
+    mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
     mlflow.set_experiment(EXPERIMENT_NAME)
 
     with mlflow.start_run(run_name="baseline_hist_gradient_boosting"):
+        active_run = mlflow.active_run()
+        if active_run is None:
+            raise RuntimeError("MLflow did not create an active run")
+        run_id = active_run.info.run_id
+
         mlflow.log_param("model_type", "HistGradientBoostingRegressor")
         mlflow.log_param("test_size", TEST_SIZE)
         mlflow.log_param("feature_count", len(FEATURE_COLUMNS))
@@ -152,14 +183,48 @@ def log_to_mlflow(
         mlflow.log_param("test_rows", test_rows)
         mlflow.log_params(MODEL_PARAMS)
 
+        if data_profile_path.exists():
+            with data_profile_path.open("r", encoding="utf-8") as file:
+                data_profile = json.load(file)
+            mlflow.log_param("dataset_source", data_profile.get("source", "unknown"))
+            mlflow.log_param("dataset_rows", data_profile.get("rows", 0))
+            mlflow.log_param("dataset_zones", data_profile.get("zones", 0))
+
         mlflow.log_metrics(flatten_metrics(metrics))
 
-        mlflow.sklearn.log_model(
+        model_info = mlflow.sklearn.log_model(
             sk_model=model,
-            artifact_path="model",
+            name="model",
         )
         mlflow.log_artifact(str(model_path), artifact_path="artifacts")
         mlflow.log_artifact(str(metrics_path), artifact_path="artifacts")
+
+        registry_status = "registered"
+        registry_error = None
+        registry_version = None
+        try:
+            model_version = mlflow.register_model(
+                model_uri=model_info.model_uri,
+                name=REGISTERED_MODEL_NAME,
+            )
+            registry_version = int(model_version.version)
+        except Exception as error:
+            # Keep the model artifact usable, but expose registry failure in the report.
+            registry_status = "registration_failed"
+            registry_error = str(error)
+
+        registry_summary = {
+            "name": REGISTERED_MODEL_NAME,
+            "status": registry_status,
+            "version": registry_version,
+            "experiment": EXPERIMENT_NAME,
+            "run_id": run_id,
+            "tracking_uri": display_tracking_uri(MLFLOW_TRACKING_URI),
+            "error": registry_error,
+        }
+        with registry_path.open("w", encoding="utf-8") as file:
+            json.dump(registry_summary, file, indent=4)
+        mlflow.log_artifact(str(registry_path), artifact_path="artifacts")
 
 
 def main() -> None:
@@ -170,6 +235,8 @@ def main() -> None:
     input_path = PROCESSED_DATA_DIR / INPUT_FILE_NAME
     model_path = MODELS_DIR / MODEL_FILE_NAME
     metrics_path = REPORTS_DIR / METRICS_FILE_NAME
+    registry_path = REPORTS_DIR / REGISTRY_FILE_NAME
+    data_profile_path = REPORTS_DIR / DATA_PROFILE_FILE_NAME
 
     data = pd.read_parquet(input_path)
     data[PICKUP_HOUR_COL] = pd.to_datetime(data[PICKUP_HOUR_COL])
@@ -195,6 +262,8 @@ def main() -> None:
         metrics=metrics,
         model_path=model_path,
         metrics_path=metrics_path,
+        registry_path=registry_path,
+        data_profile_path=data_profile_path,
         train_rows=len(train_data),
         test_rows=len(test_data),
     )
@@ -204,7 +273,7 @@ def main() -> None:
     print(f"Train shape: {train_data.shape}")
     print(f"Test shape: {test_data.shape}")
     print(f"Metrics: {metrics}")
-    print(f"MLflow tracking directory: {MLFLOW_TRACKING_DIR}")
+    print(f"MLflow tracking URI: {MLFLOW_TRACKING_URI}")
 
 
 if __name__ == "__main__":

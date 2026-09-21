@@ -6,9 +6,15 @@ __pycache__
 .ipynb_checkpoints
 mlruns
 mlartifacts
-data
+mlflow.db
+data/raw/*
+!data/raw/.gitkeep
+data/external
 notebooks
-reports
+reports/retrain_requests.jsonl
+reports/retrain_status.json
+reports/retrain.log
+reports/figures
 .dvc/cache
 .dvc/tmp
 *.pyc

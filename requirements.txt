@@ -1,40 +1,16 @@
-# Local package
+# Install the local package together with the pinned runtime/training stack.
 -e .
 
-# Core ML and data processing
-pandas
-numpy
-scikit-learn
-matplotlib
-joblib
-pyarrow
-fastparquet
+pandas==2.3.3
+numpy==2.2.6
+scikit-learn==1.7.2
+joblib==1.5.3
+pyarrow==23.0.1
 
-# Jupyter / local notebooks
-ipykernel
+dvc==3.67.1
+mlflow==3.11.1
 
-# Configuration and CLI
-click
-python-dotenv
-
-# Documentation
-Sphinx
-
-# Code quality and testing
-black
-flake8
-bandit
-mypy
-pytest
-coverage
-
-# Data and model versioning
-dvc
-
-# Experiment tracking
-mlflow
-
-# API service
-fastapi
-uvicorn
-prometheus-client
+fastapi==0.136.1
+starlette==1.0.0
+uvicorn==0.46.0
+prometheus-client==0.23.1

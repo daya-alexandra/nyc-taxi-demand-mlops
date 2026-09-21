@@ -1,0 +1,8 @@
+-r requirements.txt
+
+# CI, tests and code quality
+black==26.3.1
+flake8==7.3.0
+pytest==9.0.3
+httpx==0.28.1
+bandit==1.9.4

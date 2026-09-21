@@ -7,13 +7,47 @@ services:
     container_name: nyc-taxi-demand-api
     environment:
       MLFLOW_TRACKING_URI: http://mlflow:5000
+      NYC_TAXI_DATA_MODE: sample
+      RETRAIN_ENABLED: "true"
     ports:
       - "8000:8000"
     depends_on:
-      - mlflow
+      mlflow:
+        condition: service_healthy
+      trainer:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2)
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  trainer:
+    image: nyc-taxi-demand-api:latest
+    container_name: nyc-taxi-demand-trainer
+    command:
+      - python
+      - -m
+      - dvc
+      - repro
+      - --force
+    environment:
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      NYC_TAXI_DATA_MODE: sample
+      DVC_NO_ANALYTICS: "1"
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    restart: "no"
 
   mlflow:
-    image: ghcr.io/mlflow/mlflow:v3.1.4
+    image: ghcr.io/mlflow/mlflow:v3.11.1
     container_name: nyc-taxi-demand-mlflow
     entrypoint:
       - mlflow
@@ -22,15 +56,30 @@ services:
       - --backend-store-uri
       - sqlite:////mlflow/mlflow.db
       - --default-artifact-root
+      - mlflow-artifacts:/
+      - --artifacts-destination
       - /mlflow/artifacts
       - --host
       - 0.0.0.0
       - --port
       - "5000"
+      - --allowed-hosts
+      - "mlflow:*,localhost:*,127.0.0.1:*"
     ports:
       - "5000:5000"
     volumes:
-      - mlflow-data:/mlflow
+      - mlflow-data-v2:/mlflow
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=2)
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
 
   prometheus:
     image: prom/prometheus:v2.55.1
@@ -43,7 +92,9 @@ services:
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+    restart: unless-stopped
 
   grafana:
     image: grafana/grafana:11.3.1
@@ -59,6 +110,7 @@ services:
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
+    restart: unless-stopped
 
 volumes:
-  mlflow-data:
+  mlflow-data-v2:

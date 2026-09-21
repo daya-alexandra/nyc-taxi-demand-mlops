@@ -24,6 +24,7 @@ const modelMetric = document.querySelector("#model-metric");
 const historyMetric = document.querySelector("#history-metric");
 const driftMetric = document.querySelector("#drift-metric");
 const registryMetric = document.querySelector("#registry-metric");
+const datasetMetric = document.querySelector("#dataset-metric");
 const dataDriftMetric = document.querySelector("#data-drift-metric");
 const targetDriftMetric = document.querySelector("#target-drift-metric");
 const conceptDriftMetric = document.querySelector("#concept-drift-metric");
@@ -64,6 +65,16 @@ function renderFlags(flags) {
     .join("");
 }
 
+function severityClass(value) {
+  if (["critical", "failed", "registration_failed"].includes(value)) {
+    return "danger";
+  }
+  if (["warning", "pending", "not_generated"].includes(value)) {
+    return "warning";
+  }
+  return "";
+}
+
 function formPayload(form) {
   const payload = {};
   const data = new FormData(form);
@@ -82,7 +93,8 @@ async function requestJson(url, options = {}) {
   });
 
   if (!response.ok) {
-    throw new Error(`Request failed: ${response.status}`);
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.detail || `Request failed: ${response.status}`);
   }
 
   return response.json();
@@ -141,7 +153,7 @@ async function loadDrift() {
         <div class="alert-row">
           <div class="alert-title">${item.title}</div>
           <div class="alert-message">${item.message}</div>
-          <span class="flag warning">${item.severity}</span>
+          <span class="flag ${severityClass(item.severity)}">${item.severity}</span>
         </div>
       `,
     )
@@ -151,6 +163,8 @@ async function loadDrift() {
 async function loadExperiments() {
   const data = await requestJson("/api/experiments");
   registryMetric.textContent = data.items[0]?.registry_status || "unknown";
+  const source = data.items[0]?.dataset_source || "unknown";
+  datasetMetric.textContent = data.items[0]?.is_synthetic ? "sample" : source;
 
   experimentsTable.innerHTML = data.items
     .map(
@@ -163,7 +177,8 @@ async function loadExperiments() {
           <td>${formatNumber(item.rmse)}</td>
           <td>${formatNumber(item.r2)}</td>
           <td>${item.test_rows || "--"}</td>
-          <td><span class="flag warning">${item.registry_status}</span></td>
+          <td>${item.is_synthetic ? "sample" : item.dataset_source}</td>
+          <td><span class="flag ${severityClass(item.registry_status)}">${item.registry_status}</span></td>
         </tr>
       `,
     )
@@ -172,13 +187,41 @@ async function loadExperiments() {
 
 async function requestRetrain() {
   const data = await requestJson("/api/retrain", { method: "POST" });
-  showToast(`${data.message} Command: ${data.command}`);
+  retrainButton.disabled = true;
+  showToast(data.message);
+  window.setTimeout(() => pollRetrainStatus(data.request_id), 1000);
+}
+
+async function pollRetrainStatus(requestId) {
+  try {
+    const data = await requestJson("/api/retrain/status");
+    if (data.request_id !== requestId) {
+      retrainButton.disabled = false;
+      showToast("A newer retraining request replaced this status view.");
+      return;
+    }
+    if (["queued", "running"].includes(data.status)) {
+      window.setTimeout(() => pollRetrainStatus(requestId), 1500);
+      return;
+    }
+
+    retrainButton.disabled = false;
+    showToast(data.message || `Retraining ${data.status}`);
+    await Promise.all([loadHealth(), loadPredictions(), loadDrift(), loadExperiments()]);
+  } catch (error) {
+    retrainButton.disabled = false;
+    showToast(error.message);
+  }
 }
 
 async function loadHealth() {
   const data = await requestJson("/health");
-  systemStatus.textContent = data.model_file_exists ? "model ready" : "model missing";
+  systemStatus.textContent = data.status;
   modelMetric.textContent = data.model_file_exists ? "ready" : "missing";
+  if (["queued", "running"].includes(data.retrain?.status)) {
+    retrainButton.disabled = true;
+    window.setTimeout(() => pollRetrainStatus(data.retrain.request_id), 1000);
+  }
 }
 
 tabButtons.forEach((button) => {
