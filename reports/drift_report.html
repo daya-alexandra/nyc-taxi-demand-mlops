@@ -14,12 +14,33 @@
       border-radius: 999px;
       background: #dff4ef;
     }
+    .status.warning { background: #fff3cf; }
+    .status.critical { background: #fee4e2; color: #b42318; }
+    .window { color: #52625b; }
   </style>
 </head>
 <body>
   <h1>NYC Taxi Drift Report</h1>
-  <p>Generated at: 2026-06-09T12:10:57+00:00</p>
-  <p>Status: <span class="status">critical</span></p>
+  <p>Generated at: 2026-09-21T09:40:35+00:00</p>
+  <p>
+    Status:
+    <span class="status critical">
+      critical
+    </span>
+  </p>
+  <p class="window">
+    Reference: 2024-05-16 00:00:00 — 2024-06-07 23:00:00<br />
+    Current: 2024-06-08 00:00:00 — 2024-06-30 23:00:00
+  </p>
+  <h2>Drift Signals</h2>
+  <table>
+    <thead>
+      <tr><th>Signal</th><th>Severity</th><th>Explanation</th></tr>
+    </thead>
+    <tbody><tr><td>Data drift</td><td><span class="status critical">critical</span></td><td>3 features above PSI threshold. Max PSI: temperature_2m = 7.057472.</td></tr>
+<tr><td>Target drift</td><td><span class="status ok">ok</span></td><td>PSI по target trip_count = 0.080.</td></tr>
+<tr><td>Concept drift</td><td><span class="status ok">ok</span></td><td>Recent-window MAE current/reference ratio = 1.09.</td></tr></tbody>
+  </table>
   <h2>Feature Drift</h2>
   <table>
     <thead>
@@ -31,20 +52,18 @@
         <th>Current mean</th>
       </tr>
     </thead>
-    <tbody><tr><td>month</td><td>14.464891</td><td>critical</td><td>4.228261</td><td>6.0</td></tr>
-<tr><td>temperature_2m</td><td>7.053135</td><td>critical</td><td>12.692301</td><td>23.625906</td></tr>
-<tr><td>day_of_month</td><td>2.726098</td><td>critical</td><td>15.836957</td><td>19.0</td></tr>
-<tr><td>relative_humidity_2m</td><td>0.217769</td><td>critical</td><td>68.767663</td><td>62.807971</td></tr>
-<tr><td>weather_code</td><td>0.134265</td><td>warning</td><td>10.662591</td><td>5.201087</td></tr>
-<tr><td>precipitation</td><td>0.065776</td><td>ok</td><td>0.177627</td><td>0.093841</td></tr>
-<tr><td>wind_speed_10m</td><td>0.05657</td><td>ok</td><td>13.737681</td><td>14.267572</td></tr>
-<tr><td>day_of_week</td><td>0.020373</td><td>ok</td><td>3.01087</td><td>3.217391</td></tr>
-<tr><td>is_weekend</td><td>0.019757</td><td>ok</td><td>0.282609</td><td>0.347826</td></tr>
-<tr><td>rolling_mean_24h</td><td>0.003282</td><td>ok</td><td>18.911403</td><td>18.697753</td></tr>
-<tr><td>lag_168h</td><td>0.0013</td><td>ok</td><td>18.778428</td><td>18.942893</td></tr>
-<tr><td>lag_24h</td><td>0.000165</td><td>ok</td><td>18.902268</td><td>18.736922</td></tr>
-<tr><td>lag_1h</td><td>5.8e-05</td><td>ok</td><td>18.914301</td><td>18.494461</td></tr>
-<tr><td>PULocationID</td><td>0.0</td><td>ok</td><td>132.5</td><td>132.5</td></tr>
+    <tbody><tr><td>temperature_2m</td><td>7.057472</td><td>critical</td><td>21.326725</td><td>13.927855</td></tr>
+<tr><td>relative_humidity_2m</td><td>0.87573</td><td>critical</td><td>48.849491</td><td>60.048566</td></tr>
+<tr><td>rolling_mean_24h</td><td>0.174227</td><td>warning</td><td>24.379495</td><td>27.090248</td></tr>
+<tr><td>lag_1h</td><td>0.07915</td><td>ok</td><td>24.29058</td><td>27.394384</td></tr>
+<tr><td>day_of_week</td><td>0.050031</td><td>ok</td><td>3.043478</td><td>3.217391</td></tr>
+<tr><td>lag_24h</td><td>0.046334</td><td>ok</td><td>24.460236</td><td>26.784511</td></tr>
+<tr><td>is_weekend</td><td>0.035899</td><td>ok</td><td>0.26087</td><td>0.347826</td></tr>
+<tr><td>precipitation</td><td>0.001572</td><td>ok</td><td>0.32228</td><td>0.327352</td></tr>
+<tr><td>wind_speed_10m</td><td>0.001445</td><td>ok</td><td>11.978987</td><td>11.991812</td></tr>
+<tr><td>lag_168h</td><td>0.001208</td><td>ok</td><td>25.692029</td><td>25.606159</td></tr>
+<tr><td>weather_code</td><td>9e-05</td><td>ok</td><td>15.424728</td><td>15.013225</td></tr>
+<tr><td>PULocationID</td><td>0.0</td><td>ok</td><td>136.8</td><td>136.8</td></tr>
 <tr><td>hour</td><td>0.0</td><td>ok</td><td>11.5</td><td>11.5</td></tr></tbody>
   </table>
 </body>

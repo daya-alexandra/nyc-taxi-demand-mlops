@@ -1,8 +1,9 @@
 {
     "name": "nyc-taxi-demand-regressor",
     "status": "registered",
+    "version": 1,
     "experiment": "nyc-taxi-demand-baseline",
-    "run_id": "bcf60d1585214e21bdcc329783057143",
-    "tracking_uri": "http://127.0.0.1:5000",
+    "run_id": "497a9505a62d4637bda4ae69447d06f0",
+    "tracking_uri": "sqlite:///mlflow.db",
     "error": null
 }

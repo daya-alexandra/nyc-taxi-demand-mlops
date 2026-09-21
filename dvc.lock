@@ -5,71 +5,103 @@ stages:
     deps:
     - path: data/raw
       hash: md5
-      md5: ba8e122771907abe8e5285842698b49b.dir
-      size: 245655027
-      nfiles: 6
+      md5: 6ffbaaad7b4ac6e1afabed19a80b2560.dir
+      size: 0
+      nfiles: 1
     - path: src/data/make_dataset.py
       hash: md5
-      md5: c02698607cd9f627b6b13d37ab6ea106
-      size: 5752
+      md5: d3f834d8f9ba7fd8df0d84197165a679
+      size: 10755
     outs:
     - path: data/interim/hourly_demand.parquet
       hash: md5
-      md5: 5c2c014ac8a5a5b274af50a8d01e17b6
-      size: 833603
+      md5: 01272e15e11a24d7e6b815cffdf05d3e
+      size: 474671
+    - path: reports/data_profile.json
+      hash: md5
+      md5: 0a331ef7d4e06bb35cff94dbecceaf4d
+      size: 196
   build_features:
     cmd: python src/features/build_features.py
     deps:
     - path: data/interim/hourly_demand.parquet
       hash: md5
-      md5: 5c2c014ac8a5a5b274af50a8d01e17b6
-      size: 833603
+      md5: 01272e15e11a24d7e6b815cffdf05d3e
+      size: 474671
     - path: src/features/build_features.py
       hash: md5
-      md5: efb66c377eeddb1f3b72172d333616c7
-      size: 2747
+      md5: fd8b789e3937a51a49c7fe4284433ef6
+      size: 2637
     outs:
     - path: data/processed/model_features.parquet
       hash: md5
-      md5: 543ad5b660643d47cc548a8c71f2b19f
-      size: 3667182
+      md5: b42048e348ca82e62bb7e2e644b48582
+      size: 691048
   train_model:
     cmd: python src/models/train_model.py
     deps:
     - path: data/processed/model_features.parquet
       hash: md5
-      md5: 543ad5b660643d47cc548a8c71f2b19f
-      size: 3667182
+      md5: b42048e348ca82e62bb7e2e644b48582
+      size: 691048
     - path: src/models/train_model.py
       hash: md5
-      md5: e9c9af38f87a54c4c9822294d8893776
-      size: 6491
+      md5: f49b8cb6e54086b7eaadcc4b9ac44e1c
+      size: 8975
     outs:
     - path: models/baseline_demand_model.joblib
       hash: md5
-      md5: ea0bcbfcab41ca3516e1ca6a63a64b47
-      size: 743485
+      md5: 33b6fcf943ea221225e4967e5e32d666
+      size: 740397
     - path: reports/baseline_metrics.json
       hash: md5
-      md5: 22fc27f45bd2a770f42ddd391f7fe409
-      size: 574
+      md5: 47dda5f535d737c1883e9c50bfc0f067
+      size: 569
+    - path: reports/model_registry.json
+      hash: md5
+      md5: a1d5e9697715699f4ac043774e68dd33
+      size: 255
   predict_model:
     cmd: python src/models/predict_model.py
     deps:
     - path: data/processed/model_features.parquet
       hash: md5
-      md5: 543ad5b660643d47cc548a8c71f2b19f
-      size: 3667182
+      md5: b42048e348ca82e62bb7e2e644b48582
+      size: 691048
     - path: models/baseline_demand_model.joblib
       hash: md5
-      md5: ea0bcbfcab41ca3516e1ca6a63a64b47
-      size: 743485
+      md5: 33b6fcf943ea221225e4967e5e32d666
+      size: 740397
     - path: src/models/predict_model.py
       hash: md5
-      md5: c3eb360b8497d25683900d2bc3544b00
-      size: 2024
+      md5: 4756d4f3dd69dbfdaab33e243b8a88ef
+      size: 1957
     outs:
     - path: reports/baseline_predictions.parquet
       hash: md5
-      md5: 1b75c4ddf8699b5827de9410929fe5bc
-      size: 12310626
+      md5: 9fc538d6496a0d0f217499ebd0c4609a
+      size: 1194184
+  drift_report:
+    cmd: python src/monitoring/calculate_drift.py
+    deps:
+    - path: data/processed/model_features.parquet
+      hash: md5
+      md5: b42048e348ca82e62bb7e2e644b48582
+      size: 691048
+    - path: reports/baseline_predictions.parquet
+      hash: md5
+      md5: 9fc538d6496a0d0f217499ebd0c4609a
+      size: 1194184
+    - path: src/monitoring/calculate_drift.py
+      hash: md5
+      md5: 511c38fdc2016d8da47b4a8d35cf0fb3
+      size: 12715
+    outs:
+    - path: reports/drift_report.html
+      hash: md5
+      md5: acd9cbb82ca6129aebe230a334f0c9b3
+      size: 3076
+    - path: reports/drift_report.json
+      hash: md5
+      md5: 3b31a48ac0718fb27a446979dd803bbd
+      size: 3592

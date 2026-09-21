@@ -192,6 +192,70 @@
       ],
       "title": "Retrain requests",
       "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 4, "x": 0, "y": 15},
+      "id": 7,
+      "targets": [{"expr": "taxi_model_mae", "refId": "A"}],
+      "title": "Offline model MAE",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 4, "x": 4, "y": 15},
+      "id": 8,
+      "targets": [{"expr": "taxi_model_rmse", "refId": "A"}],
+      "title": "Offline model RMSE",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 4, "x": 8, "y": 15},
+      "id": 9,
+      "targets": [{"expr": "taxi_model_r2", "refId": "A"}],
+      "title": "Offline model R2",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 4, "x": 12, "y": 15},
+      "id": 10,
+      "targets": [{"expr": "taxi_data_drift_status", "refId": "A"}],
+      "title": "Data drift status",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 4, "x": 16, "y": 15},
+      "id": 11,
+      "targets": [{"expr": "taxi_data_drift_max_psi", "refId": "A"}],
+      "title": "Maximum feature PSI",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 4, "x": 20, "y": 15},
+      "id": 12,
+      "targets": [{"expr": "taxi_drift_active_alerts", "refId": "A"}],
+      "title": "Active drift alerts",
+      "type": "stat"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 21},
+      "id": 13,
+      "targets": [{"expr": "taxi_target_drift_psi", "refId": "A"}],
+      "title": "Target drift PSI",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 21},
+      "id": 14,
+      "targets": [{"expr": "taxi_concept_drift_mae_ratio", "refId": "A"}],
+      "title": "Concept drift MAE ratio",
+      "type": "timeseries"
     }
   ],
   "refresh": "10s",

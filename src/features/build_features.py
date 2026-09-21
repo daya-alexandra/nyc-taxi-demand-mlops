@@ -87,9 +87,7 @@ def main() -> None:
 
     print(f"Saved features to: {output_path}")
     print(f"Features shape: {features.shape}")
-    print(
-        f"Date range: {features[PICKUP_HOUR_COL].min()} — {features[PICKUP_HOUR_COL].max()}"
-    )
+    print(f"Date range: {features[PICKUP_HOUR_COL].min()} — {features[PICKUP_HOUR_COL].max()}")
 
 
 if __name__ == "__main__":

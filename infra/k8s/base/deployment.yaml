@@ -15,25 +15,45 @@ spec:
       labels:
         app: nyc-taxi-demand-api
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 101
       containers:
         - name: api
           image: nyc-taxi-demand-api:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           env:
             - name: MLFLOW_TRACKING_URI
               value: http://mlflow:5000
+            - name: NYC_TAXI_DATA_MODE
+              value: sample
+            - name: RETRAIN_ENABLED
+              value: "true"
           ports:
             - name: http
               containerPort: 8000
           readinessProbe:
             httpGet:
-              path: /health
+              path: /health/ready
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /health
+              path: /health/live
               port: http
             initialDelaySeconds: 20
             periodSeconds: 20
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL

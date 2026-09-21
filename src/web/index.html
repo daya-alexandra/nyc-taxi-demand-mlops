@@ -27,7 +27,7 @@
           id="retrain-button"
           class="button button-secondary"
           type="button"
-          title="Создать запрос на переобучение"
+          title="Запустить DVC-переобучение"
         >
           <span aria-hidden="true">↻</span>
           Запустить retrain
@@ -59,6 +59,10 @@
           <article class="metric-card">
             <span class="metric-label">Registry</span>
             <strong id="registry-metric">not registered</strong>
+          </article>
+          <article class="metric-card">
+            <span class="metric-label">Dataset</span>
+            <strong id="dataset-metric">unknown</strong>
           </article>
         </section>
 
@@ -227,6 +231,7 @@
                   <th>RMSE</th>
                   <th>R2</th>
                   <th>Rows</th>
+                  <th>Dataset</th>
                   <th>Registry</th>
                 </tr>
               </thead>

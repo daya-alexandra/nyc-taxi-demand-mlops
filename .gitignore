@@ -36,6 +36,8 @@ pip-delete-this-directory.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
+.pytest_cache/
+pytest-of-root/
 .coverage
 .coverage.*
 .cache
@@ -101,10 +103,16 @@ data/external/*
 !data/interim/.gitkeep
 !data/processed/.gitkeep
 !data/external/.gitkeep
+!data/raw/.gitkeep
 
 # Generated report artifacts
 reports/*.parquet
+reports/retrain_requests.jsonl
+reports/retrain_status.json
+reports/retrain.log
+reports/figures/
 
 # MLflow local tracking
 mlruns/
 mlartifacts/
+mlflow.db
